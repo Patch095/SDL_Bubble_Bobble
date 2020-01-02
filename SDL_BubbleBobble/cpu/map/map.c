@@ -56,12 +56,11 @@ level_t *load_level(const char* file_name){
                 new_level->level_layout[index_y][index_x] = 2;
                 index_x++;
                 break;
+            case '9':
+                new_level->level_layout[index_y][index_x] = 9;
+                index_x++;
+                break;
             default:
-                //printf("%c = ", symbol);
-                //int int_symbol = (int)symbol;
-                //printf("%d \n", int_symbol);
-                //new_level->level_layout[index_y][index_x] = symbol;
-                //index_x++;
                 break;
         }
     }
@@ -69,3 +68,25 @@ level_t *load_level(const char* file_name){
     free(data);
     return new_level;
 }
+
+int get_tile_value(level_t *level, int y, int x){
+    int tile_y = y / TILE_H;
+    int tile_x = x / TILE_W;
+    return level->level_layout[tile_y][tile_x];
+}
+
+
+/*
+1 1 1 1 1 1 1 1 1 1 1 1
+1 0 0 0 0 0 0 0 0 0 0 1
+1 0 0 0 0 0 0 0 0 0 0 1
+1 0 0 0 0 0 0 0 0 0 0 1
+1 0 0 0 0 0 0 0 0 0 0 1
+1 1 0 1 1 1 1 1 1 0 1 1
+1 0 0 0 0 0 0 0 0 0 0 1
+1 1 0 1 1 1 1 1 1 0 1 1
+1 0 0 0 0 0 0 0 0 0 0 1
+1 1 0 1 1 1 1 1 1 0 1 1
+1 2 0 0 0 0 0 0 0 0 0 1
+1 1 1 1 1 1 1 1 1 1 1 1
+*/
