@@ -29,6 +29,7 @@ level_t *load_level(const char* file_name){
         return NULL;
     }
     new_level->level_name = file_name;
+    new_level->enemies_in_level = 0;
 
     //load file.h in new level
     int index_x = 0;
@@ -44,19 +45,24 @@ level_t *load_level(const char* file_name){
             case ' ':
                 continue;
                 break;
-            case '0':
+            case '0':   //empty
                 new_level->level_layout[index_y][index_x] = 0;
                 index_x++;
                 break;
-            case '1':
+            case '1':   //wall
                 new_level->level_layout[index_y][index_x] = 1;
                 index_x++;
                 break;
-            case '2':
+            case '2':   //p1_spawn
                 new_level->level_layout[index_y][index_x] = 2;
                 index_x++;
                 break;
-            case '9':
+            case '4':   //zen-chan_spawn
+                new_level->level_layout[index_y][index_x] = 4;
+                new_level->enemies_in_level++;
+                index_x++;
+                break;
+            case '9':   //UI score
                 new_level->level_layout[index_y][index_x] = 9;
                 index_x++;
                 break;

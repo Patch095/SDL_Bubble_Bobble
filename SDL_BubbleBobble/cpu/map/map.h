@@ -20,6 +20,7 @@ typedef struct level_map{
     //8 = star spawn
 
     //9 = UI
+    int enemies_in_level;
 } level_t;
 
 level_t *load_level(const char* file_name);

@@ -10,9 +10,9 @@ player_t *player_init(int player_id){
 
     new_player->player_id = player_id;
     if(player_id == 0){
-        new_player->direction = 0;
-    }else if(player_id == 1){
         new_player->direction = 1;
+    }else if(player_id == 1){
+        new_player->direction = -1;
     }
 
     new_player->score = 0;
@@ -44,7 +44,9 @@ void player_spawn(player_t *player, int start_x, int start_y){
     player->direction = player->player_id;
 
     player->rect.x = start_x;
-    player->rect.y = start_y;  
+    player->rect.y = start_y;
+
+    player->animation_frame = 0;
 }
 
 void add_a_life(player_t *player){

@@ -10,11 +10,13 @@ typedef struct player{
     unsigned long score;
     int player_id;      //0 = p1    1 = p2
 
-    int direction;      //0 = right 1 = left
+    int direction;      //-1 = left 1 = right
     int is_shooting;    //0 = no    1 = yes
     int jumping_state;  //0 = no    1 = jumping     -1 = falling
     int jump_offset;
     int is_alive;       //0 = no    1 = yes
+
+    int animation_frame;
 } player_t;
 
 player_t *player_init(int player_id);
