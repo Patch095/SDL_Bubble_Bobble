@@ -13,7 +13,7 @@ typedef struct bubble{
     int shoot_distance_offset;
     int status;     //0 = inactive  // 1 = shoot    // 2 = empty    //3 = enemy inside
     
-    int abserbed_id;
+    int absorbed_id;
     int absorbed_type;
 
     int duration;
@@ -25,6 +25,6 @@ bubble_t *bubble_init(int owner_id);
 
 int on_bubble_collision(bubble_t *bubble, int collider_id, SDL_Rect collider);
 
-void bubble_update(bubble_t *bubble);
+int bubble_update(bubble_t *bubble);
 
 void reset_bubble(bubble_t *bubble);

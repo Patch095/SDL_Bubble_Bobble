@@ -37,18 +37,21 @@ int on_bubble_collision(bubble_t *bubble, int collider_id, SDL_Rect collider){
     return 0;
 }
 
-void bubble_update(bubble_t *bubble){
+int bubble_update(bubble_t *bubble){
+    //bubble not activeted
     if(bubble->status == 0){
-        return;
+        return -1;
     }
 
+    //shoot bubble
     if(bubble->status == 1){
         bubble->rect.x += (1 * bubble->direction);
         bubble->shoot_distance_offset--;
         if(bubble->shoot_distance_offset <= 0){
             bubble->status = 2;
         }
-    }else if(bubble->status != 1){
+    }//float bubble
+    else if(bubble->status != 1){
         if(bubble->duration % 2 == 0){
             bubble->rect.y--;
         } 
@@ -57,8 +60,9 @@ void bubble_update(bubble_t *bubble){
     bubble->duration--;
     
     if(bubble->duration <= 0){
-        reset_bubble(bubble);
+        return 0;
     }
+    return 1;
 }
 
 void reset_bubble(bubble_t *bubble){

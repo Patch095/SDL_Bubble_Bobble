@@ -38,6 +38,10 @@
 #define PLAYER_ONE_BUBBLE_EMPTY "textures/p1_bubble_empty.png"
 #define PLAYER_ONE_BUBBLE_SHOOT "textures/p1_bubble_shoot.png"
 
+#define PLAYER_ONE_BUBBLE_ZEN_00 "textures/p1_bubble_zen_0.png"
+#define PLAYER_ONE_BUBBLE_ZEN_01 "textures/p1_bubble_zen_1.png"
+#define PLAYER_ONE_BUBBLE_ZEN_02 "textures/p1_bubble_zen_2.png"
+
 #define ENEMY_ZEN_CHAN_LEFT_00 "textures/zen_left_0.png"
 #define ENEMY_ZEN_CHAN_LEFT_01 "textures/zen_left_1.png"
 #define ENEMY_ZEN_CHAN_LEFT_02 "textures/zen_left_2.png"
@@ -98,6 +102,9 @@ level_t* load_level_from_file(int level_number, int *p1_spawn_pos_x, int *p1_spa
         case 01:
             level = load_level("cpu/map/level_01.h");
             break;
+        case 02:
+            level = load_level("cpu/map/level_02.h");
+            break;
         default:
             break;
     }
@@ -120,7 +127,7 @@ level_t* load_level_from_file(int level_number, int *p1_spawn_pos_x, int *p1_spa
     return level;
 }
 
-void spawn_player_in_level(player_t *player, int spawn_pos_x, int spawn_pos_y){
+void spawn_player_in_level(player_t *player, int spawn_tile_x, int spawn_tile_y){
     if(!player || player->is_alive == 0){
         return;
     }
@@ -130,6 +137,11 @@ void spawn_player_in_level(player_t *player, int spawn_pos_x, int spawn_pos_y){
     }else if(player->player_id == 1){
         player->direction = -1;
     }
+
+    int spawn_pos_x = spawn_tile_x * TILE_W;
+    int spawn_pos_y = (spawn_tile_y * TILE_H) + (TILE_H - PLAYER_WH) - 1;
+
+
     player->rect.x = spawn_pos_x;
     player->rect.y = spawn_pos_y;
 }
@@ -225,8 +237,69 @@ void enemy_absorb(bubble_t *bubble, enemy_t *enemy, int enemy_id){
     enemy->absorbed_timer = ABSORBE_DURATION_TIMER;
     bubble->status = 3;
     bubble->absorbed_type = enemy->type_id;
-    bubble->abserbed_id = enemy_id;
+    bubble->absorbed_id = enemy_id;
     bubble->duration = ABSORBE_DURATION_TIMER;
+}
+void release_enemy(bubble_t *bubble, enemy_t *enemy_in_level, int enemy_numbers){
+    if(bubble->status != 3){
+        return;
+    }
+    if(bubble->absorbed_id < 0 || bubble->absorbed_id >= enemy_numbers){
+        return;
+    }
+
+    enemy_t *enemy_to_release = &enemy_in_level[bubble->absorbed_id];
+    if(!enemy_to_release || enemy_to_release->type_id != bubble->absorbed_type){
+        return;
+    }
+
+    enemy_to_release->rect.x = bubble->rect.x;
+    enemy_to_release->rect.y = bubble->rect.y;
+    enemy_to_release->status = 1;
+
+    return;
+}
+
+void level_start(level_t *level, int *level_number, int *p1_spawn_tile_x, int *p1_spawn_tile_y, player_t *player_1, player_t *player_2, enemy_t *level_enemies){
+    //if(0 <= level_number && level_number <= 99){
+        //all level beated, YOU WIN!, game over
+    //    return NULL;
+    //}
+    int lv_n = *level_number;
+    //*level_number = ln++;
+    lv_n++;
+
+    if(0 <= lv_n && lv_n > 99){
+        //all level beated, YOU WIN!, game over
+        return;
+    }
+    //lv_n++;
+
+    //load level from file.h
+    //level_t *level = load_level_from_file(&level_number, p1_spawn_tile_x, p1_spawn_tile_y);
+    level = load_level_from_file(lv_n, p1_spawn_tile_x, p1_spawn_tile_y);
+    if(!level){
+        SDL_Log("error load level %d", lv_n);
+        return;
+    }
+  
+    //level_enemies = spawn_enemies_on_level(level, &level_number);
+    level_enemies = spawn_enemies_on_level(level, lv_n);
+
+    if(player_1){
+        spawn_player_in_level(player_1, *p1_spawn_tile_x, *p1_spawn_tile_x);
+    }
+    if(player_2){
+        //spawn p2
+    }
+
+    for(int i = 0; i < level->enemies_in_level; i++){
+        level_enemies[i].status = 1;
+    }
+
+    *level_number = lv_n;
+
+    return;
 }
 
 int main(int argc, char **argv){
@@ -476,6 +549,48 @@ int main(int argc, char **argv){
     free(image_p1_bubble_shoot);
     SDL_UnlockTexture(p1_bubble_shoot);
 
+    //bubble absorb zen-chan
+    unsigned char *image_p1_bubble_zen_0 = stbi_load(PLAYER_ONE_BUBBLE_ZEN_00, &bubble_width, &bubble_height, &bubble_comp, 4);
+    unsigned char *image_p1_bubble_zen_1 = stbi_load(PLAYER_ONE_BUBBLE_ZEN_01, &bubble_width, &bubble_height, &bubble_comp, 4);
+    unsigned char *image_p1_bubble_zen_2 = stbi_load(PLAYER_ONE_BUBBLE_ZEN_02, &bubble_width, &bubble_height, &bubble_comp, 4);
+    if(!image_p1_bubble_zen_0 | !image_p1_bubble_zen_1 |!image_p1_bubble_zen_2){
+        SDL_Log("Unable to load image: %s", SDL_GetError());
+        goto quit;
+    }
+    
+    SDL_Texture *p1_bubble_zen_0 = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, bubble_width, bubble_height);
+    SDL_Texture *p1_bubble_zen_1 = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, bubble_width, bubble_height);
+    SDL_Texture *p1_bubble_zen_2 = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, bubble_width, bubble_height);
+
+    if (!p1_bubble_zen_0 | !p1_bubble_zen_1 |!p1_bubble_zen_2){
+        SDL_Log("Unable to create texture: %s", SDL_GetError());
+        goto quit;
+    }
+
+    if(SDL_LockTexture(p1_bubble_zen_0, NULL, (void **)&pixels, &pitch)){
+        SDL_Log("unable to map texture into address space");
+        goto quit;
+    }
+    memcpy(pixels, image_p1_bubble_zen_0, pitch * bubble_height);
+    free(image_p1_bubble_zen_0);
+    SDL_UnlockTexture(p1_bubble_zen_0);
+
+    if(SDL_LockTexture(p1_bubble_zen_1, NULL, (void **)&pixels, &pitch)){
+        SDL_Log("unable to map texture into address space");
+        goto quit;
+    }
+    memcpy(pixels, image_p1_bubble_zen_1, pitch * bubble_height);
+    free(image_p1_bubble_zen_1);
+    SDL_UnlockTexture(p1_bubble_zen_1);
+
+    if(SDL_LockTexture(p1_bubble_zen_2, NULL, (void **)&pixels, &pitch)){
+        SDL_Log("unable to map texture into address space");
+        goto quit;
+    }
+    memcpy(pixels, image_p1_bubble_zen_2, pitch * bubble_height);
+    free(image_p1_bubble_zen_2);
+    SDL_UnlockTexture(p1_bubble_zen_2);
+
     //enemy zen-chan
     int enemy_width, enemy_height, enemy_comp;
     unsigned char *image_zen_left_0 = stbi_load(ENEMY_ZEN_CHAN_LEFT_00, &enemy_width, &enemy_height, &enemy_comp, 4);
@@ -648,23 +763,11 @@ int main(int argc, char **argv){
     SDL_Texture *p1_falling = p1_right_falling;
 
     SDL_Texture *p1_texture = p1_right;
-
 //Level load
     int level_number = 00;
     int p1_spawn_tile_x = 0;
     int p1_spawn_tile_y = 0;
-    if(0 <= level_number && level_number <= 99){
-        //all level beated, YOU WIN!, game over
-    }
-
-    level_t *level = load_level_from_file(++level_number, &p1_spawn_tile_x, &p1_spawn_tile_y);
-    if(!level){
-        SDL_Log("error load level %d", level_number);
-    }
-
-//load enemies    
-    enemy_t *level_enemies = spawn_enemies_on_level(level, level_number);
-
+    
     int max_y = MAP_TILES_Y;
     int max_x = MAP_TILES_X;
     int index = 0;
@@ -679,10 +782,6 @@ int main(int argc, char **argv){
         }
     }
 
-    int p1_spawn_pos_x = p1_spawn_tile_x * wall_width;
-    int p1_spawn_pos_y = (p1_spawn_tile_y * wall_height) + (wall_height - p1_height) - 1;
-    spawn_player_in_level(player1, p1_spawn_pos_x, p1_spawn_pos_y);
-
     SDL_Rect player1_life_rects[PLAYER_MAX_LIFE];
     for(int i = 0; i < PLAYER_MAX_LIFE; i++){
         player1_life_rects[i].x = i * life_width;
@@ -690,13 +789,43 @@ int main(int argc, char **argv){
         player1_life_rects[i].w = life_width;
         player1_life_rects[i].h = life_height;
     }
+    
+    if(0 <= level_number && level_number <= 99){
+        //all level beated, YOU WIN!, game over
+    }
+
+    level_t *level = load_level_from_file(++level_number, &p1_spawn_tile_x, &p1_spawn_tile_y);
+    if(!level){
+        SDL_Log("error load level %d", level_number);
+    }
+
+    //load enemies    
+    enemy_t *level_enemies = spawn_enemies_on_level(level, level_number);
+
+    //int p1_spawn_pos_x = p1_spawn_tile_x * wall_width;
+    //int p1_spawn_pos_y = (p1_spawn_tile_y * wall_height) + (wall_height - p1_height) - 1;
+    //spawn_player_in_level(player1, p1_spawn_pos_x, p1_spawn_pos_y);
+    spawn_player_in_level(player1, p1_spawn_tile_x, p1_spawn_tile_y);
+
 
     for(int i = 0; i < level->enemies_in_level; i++){
         level_enemies[i].status = 1;
     }
 
+    /*
+    level_t *level;
+    enemy_t *level_enemies;
+
+    level_start(level, &level_number, &p1_spawn_tile_x, &p1_spawn_tile_y, player1, NULL, level_enemies);
+    if(!level){
+        SDL_Log("error load level %d", level_number);
+        goto quit;
+    }
+    */
+
 //GAME LOOP
     for(;;){
+        //SDL_Log("start loop\n");
         //get inputs
         SDL_Event event;
         while(SDL_PollEvent(&event)){
@@ -738,7 +867,6 @@ int main(int argc, char **argv){
                             }
                             break;
                         case SDLK_s:
-                            //shoot
                             if(player1->is_shooting == 0){
                                player1->is_shooting = 1;
                                bubble_t *bubble =  get_bubble(player1->player_id, p1_bubbles);
@@ -779,6 +907,12 @@ int main(int argc, char **argv){
             for(int i = 0; i < level->enemies_in_level; i++){
                 if(level_enemies[i].status != 0){
                     level_enemies[i].animation_frame = ++level_enemies[i].animation_frame % level_enemies[i].number_of_animation_frame;
+                }
+            }
+
+            for(int i = 0; i < MAX_PLAYER_BUBBLE; i++){
+                if(p1_bubbles[i].status == 3){
+                    p1_bubbles[i].absorbed_frame_animation = ++p1_bubbles[i].absorbed_frame_animation % 4;
                 }
             }
         }
@@ -863,95 +997,113 @@ int main(int argc, char **argv){
                         }
                     }
                 }
-            }                
-            SDL_Texture *enemy_texture;
-            if(level_enemies[i].type_id == 2){
-                //zen-chan textures
-                if(level_enemies[i].direction == -1){
-                    switch(level_enemies[i].animation_frame){
-                        case 0:
-                            enemy_texture = zen_left_0;
-                            break;
-                        case 1:
-                            enemy_texture = zen_left_1;
-                            break;
-                        case 2:
-                            enemy_texture = zen_left_2;
-                            break;
-                        case 3:
-                            enemy_texture = zen_left_3;
-                            break;
-                    }
-                }else if(level_enemies[i].direction == 1){
-                    switch(level_enemies[i].animation_frame){
-                        case 0:
-                            enemy_texture = zen_right_0;
-                            break;
-                        case 1:
-                            enemy_texture = zen_right_1;
-                            break;
-                        case 2:
-                            enemy_texture = zen_right_2;
-                            break;
-                        case 3:
-                            enemy_texture = zen_right_3;
-                            break;
+
+                SDL_Texture *enemy_texture;
+                if(level_enemies[i].type_id == 2){
+                    //zen-chan textures
+                    if(level_enemies[i].direction == -1){
+                        switch(level_enemies[i].animation_frame){
+                            case 0:
+                                enemy_texture = zen_left_0;
+                                break;
+                            case 1:
+                                enemy_texture = zen_left_1;
+                                break;
+                            case 2:
+                                enemy_texture = zen_left_2;
+                                break;
+                            case 3:
+                                enemy_texture = zen_left_3;
+                                break;
+                        }
+                    }else if(level_enemies[i].direction == 1){
+                        switch(level_enemies[i].animation_frame){
+                            case 0:
+                                enemy_texture = zen_right_0;
+                                break;
+                            case 1:
+                                enemy_texture = zen_right_1;
+                                break;
+                            case 2:
+                                enemy_texture = zen_right_2;
+                                break;
+                            case 3:
+                                enemy_texture = zen_right_3;
+                                break;
+                        }
                     }
                 }
 
-                if(level_enemies[i].status == 2){
-                    enemy_texture = p1_left_jump_01;
-                }
+                SDL_RenderCopy(renderer, enemy_texture, NULL, &level_enemies[i].rect);
             }
-            SDL_RenderCopy(renderer, enemy_texture, NULL, &level_enemies[i].rect);
         }
 
         //update bubbles
         for(int i = 0; i < MAX_PLAYER_BUBBLE; i++){
             if (p1_bubbles[i].status != 0){
-                bubble_update(&p1_bubbles[i]);
-                bubble_wall_collision(level, &p1_bubbles[i]);
-                
-                //check player collision
-                if(rect_collision(p1_bubbles[i].rect, player1->rect)){
-                    int collision_result = on_bubble_collision(&p1_bubbles[i], player1->player_id, player1->rect);                   
-                    if(player1->jumping_state == -1 && collision_result == 2){
-                        /*
-                        if(event.type == SDL_KEYDOWN){
-                            if(event.key.keysym.sym == SDLK_w){
-                                player1->jump_offset = JUMP_START_OFFSET / 2;
+                //update x and y
+                int is_bubble_active = bubble_update(&p1_bubbles[i]);
+                //if duration is over free enemy if status == 3(enemy inside), then go inactive
+                if(is_bubble_active == 0){
+                    if(p1_bubbles[i].status == 3){
+                        release_enemy(&p1_bubbles[i], level_enemies, level->enemies_in_level);
+                    }
+                    reset_bubble(&p1_bubbles[i]);
+                }
+                else if(is_bubble_active == 1){
+                    //check wall collision
+                    bubble_wall_collision(level, &p1_bubbles[i]);
+                    //check player collision
+                    if(rect_collision(p1_bubbles[i].rect, player1->rect)){
+                        int collision_result = on_bubble_collision(&p1_bubbles[i], player1->player_id, player1->rect);                   
+                        if(player1->jumping_state == -1 && collision_result == 2){
+                            /*
+                            if(event.type == SDL_KEYDOWN){
+                                if(event.key.keysym.sym == SDLK_w){
+                                    player1->jump_offset = JUMP_START_OFFSET / 2;
+                                }
+                            }
+                            */
+                            player1->jump_offset = JUMP_START_OFFSET / 2;
+                        }else if(collision_result == 1 || collision_result == 2){
+                            reset_bubble(&p1_bubbles[i]);
+                        }
+                    }
+                    //check enemies collision
+                    for(int j = 0; j < level->enemies_in_level; j++){
+                        if(level_enemies[j].status == 1){
+                            if(rect_collision(p1_bubbles[i].rect, level_enemies[j].rect)){
+                                int collision_result = on_bubble_collision(&p1_bubbles[i], level_enemies[j].type_id, level_enemies[j].rect);
+                                if(collision_result == 3 && p1_bubbles[i].status == 1){
+                                    enemy_absorb(&p1_bubbles[i], &level_enemies[j], j);
+                                }
                             }
                         }
-                        */
-                        player1->jump_offset = JUMP_START_OFFSET / 2;
-                    }else if(collision_result == 1 || collision_result == 2){
-                        reset_bubble(&p1_bubbles[i]);
                     }
-                }
-                //check enemies collision
-                for(int j = 0; j < level->enemies_in_level; j++){
-                    if(level_enemies[j].status == 1){
-                        if(rect_collision(p1_bubbles[i].rect, level_enemies[j].rect)){
-                            int collision_result = on_bubble_collision(&p1_bubbles[i], level_enemies[j].type_id, level_enemies[j].rect);
-                            if(collision_result == 3 && p1_bubbles[i].status == 1){
-                                enemy_absorb(&p1_bubbles[i], &level_enemies[j], j);
+                    //draw bubble
+                    switch(p1_bubbles[i].status){
+                        case 01:
+                            SDL_RenderCopy(renderer, p1_bubble_shoot, NULL, &p1_bubbles[i].rect);
+                            break;
+                        case 02:
+                            SDL_RenderCopy(renderer, p1_bubble_empty, NULL, &p1_bubbles[i].rect);
+                            break;
+                        case 03:
+                            SDL_Texture *enemy_trapped;
+                            if(p1_bubbles[i].absorbed_type == 2){
+                                if(p1_bubbles[i].absorbed_frame_animation == 0){
+                                    enemy_trapped = p1_bubble_zen_0;
+                                }else if(p1_bubbles[i].absorbed_frame_animation == 1 || p1_bubbles[i].absorbed_frame_animation == 3){
+                                    enemy_trapped = p1_bubble_zen_1;
+                                }else if(p1_bubbles[i].absorbed_frame_animation == 2){
+                                    enemy_trapped = p1_bubble_zen_2;
+                                }
                             }
-                        }
+                            SDL_RenderCopy(renderer, enemy_trapped, NULL, &p1_bubbles[i].rect);
+                            break;
+                        default:
+                            break;
                     }
-                }
-
-                switch(p1_bubbles[i].status){
-                    case 01:
-                        SDL_RenderCopy(renderer, p1_bubble_shoot, NULL, &p1_bubbles[i].rect);
-                        break;
-                    case 02:
-                        SDL_RenderCopy(renderer, p1_bubble_empty, NULL, &p1_bubbles[i].rect);
-                        break;
-                    case 03:
-                        SDL_RenderCopy(renderer, p1_bubble_shoot, NULL, &p1_bubbles[i].rect);
-                        break;
-                    default:
-                        break;
                 }
             }
         }
@@ -960,6 +1112,13 @@ int main(int argc, char **argv){
     }
 
 quit:
+    if(level_enemies){
+        for(int i = 0; i < level->enemies_in_level; i++){
+            free(&level_enemies[i]);
+        }
+        free(level_enemies);
+    }
+
     if (p1_bubbles){
         for(int i = 0; i < MAX_PLAYER_BUBBLE; i++){
             free(&p1_bubbles[i]);
@@ -967,57 +1126,61 @@ quit:
         free(p1_bubbles);
     }
 
-    if (player1){
+    if(player1){
         free(player1);
     }
 
+    if(level){
+        free(level);
+    }
+
     //textures
-    if (p1_left_00){
+    if(p1_left_00){
         SDL_DestroyTexture(p1_left_00);
     }
-    if (p1_left_01){
+    if(p1_left_01){
         SDL_DestroyTexture(p1_left_01);
     }    
-    if (p1_right_00){
+    if(p1_right_00){
         SDL_DestroyTexture(p1_right_00);
     }    
-    if (p1_right_01){
+    if(p1_right_01){
         SDL_DestroyTexture(p1_right_01);
     }
-    if (p1_left_shoot_00){
+    if(p1_left_shoot_00){
         SDL_DestroyTexture(p1_left_shoot_00);
     }
-    if (p1_left_shoot_01){
+    if(p1_left_shoot_01){
         SDL_DestroyTexture(p1_left_shoot_01);
     }    
-    if (p1_right_shoot_00){
+    if(p1_right_shoot_00){
         SDL_DestroyTexture(p1_right_shoot_00);
     }
-    if (p1_right_shoot_01){
+    if(p1_right_shoot_01){
         SDL_DestroyTexture(p1_right_shoot_01);
     }
-    if (p1_left_jump_00){
+    if(p1_left_jump_00){
         SDL_DestroyTexture(p1_left_jump_00);
     }
-    if (p1_left_jump_01){
+    if(p1_left_jump_01){
         SDL_DestroyTexture(p1_left_jump_01);
     }    
-    if (p1_right_jump_00){
+    if(p1_right_jump_00){
         SDL_DestroyTexture(p1_right_jump_00);
     }    
-    if (p1_right_jump_01){
+    if(p1_right_jump_01){
         SDL_DestroyTexture(p1_right_jump_01);
     }
-    if (p1_left_fall_00){
+    if(p1_left_fall_00){
         SDL_DestroyTexture(p1_left_fall_00);
     }
-    if (p1_left_fall_01){
+    if(p1_left_fall_01){
         SDL_DestroyTexture(p1_left_fall_01);
     }    
-    if (p1_right_fall_00){
+    if(p1_right_fall_00){
         SDL_DestroyTexture(p1_right_fall_00);
     }
-    if (p1_right_fall_01){
+    if(p1_right_fall_01){
         SDL_DestroyTexture(p1_right_fall_01);
     }
 
@@ -1026,6 +1189,16 @@ quit:
     }    
     if(p1_bubble_empty){
         SDL_DestroyTexture(p1_bubble_empty);
+    }
+
+    if(p1_bubble_zen_0){
+        SDL_DestroyTexture(p1_bubble_zen_0);
+    }
+    if(p1_bubble_zen_1){
+        SDL_DestroyTexture(p1_bubble_zen_1);
+    }
+    if(p1_bubble_zen_2){
+        SDL_DestroyTexture(p1_bubble_zen_2);
     }
 
     if(zen_left_0){

@@ -1,6 +1,8 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
+#define PLAYER_WH 16
+
 #define PLAYER_SPAWN_LIFE 3
 #define PLAYER_MAX_LIFE 5
 
