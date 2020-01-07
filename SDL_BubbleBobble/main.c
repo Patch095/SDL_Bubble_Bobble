@@ -77,11 +77,13 @@ enemy_t* spawn_enemies_on_level(level_t *level, int level_number){
                     return NULL;
                 }
                 new_enemy->rect.x = x * TILE_W;
-                new_enemy->rect.y = y * TILE_H;
+                new_enemy->rect.y = (y * TILE_H) - 1;
 
-                new_enemy->direction = dir;
+                //new_enemy->direction = dir;
+                new_enemy->direction = -1;
 
                 level_enemies[enemy_index] = *new_enemy;
+                level->enemies_alive++;
 
                 enemy_index++;
                 if(enemy_index >= level->enemies_in_level){
@@ -256,48 +258,6 @@ void release_enemy(bubble_t *bubble, enemy_t *enemy_in_level, int enemy_numbers)
     enemy_to_release->rect.x = bubble->rect.x;
     enemy_to_release->rect.y = bubble->rect.y;
     enemy_to_release->status = 1;
-
-    return;
-}
-
-void level_start(level_t *level, int *level_number, int *p1_spawn_tile_x, int *p1_spawn_tile_y, player_t *player_1, player_t *player_2, enemy_t *level_enemies){
-    //if(0 <= level_number && level_number <= 99){
-        //all level beated, YOU WIN!, game over
-    //    return NULL;
-    //}
-    int lv_n = *level_number;
-    //*level_number = ln++;
-    lv_n++;
-
-    if(0 <= lv_n && lv_n > 99){
-        //all level beated, YOU WIN!, game over
-        return;
-    }
-    //lv_n++;
-
-    //load level from file.h
-    //level_t *level = load_level_from_file(&level_number, p1_spawn_tile_x, p1_spawn_tile_y);
-    level = load_level_from_file(lv_n, p1_spawn_tile_x, p1_spawn_tile_y);
-    if(!level){
-        SDL_Log("error load level %d", lv_n);
-        return;
-    }
-  
-    //level_enemies = spawn_enemies_on_level(level, &level_number);
-    level_enemies = spawn_enemies_on_level(level, lv_n);
-
-    if(player_1){
-        spawn_player_in_level(player_1, *p1_spawn_tile_x, *p1_spawn_tile_x);
-    }
-    if(player_2){
-        //spawn p2
-    }
-
-    for(int i = 0; i < level->enemies_in_level; i++){
-        level_enemies[i].status = 1;
-    }
-
-    *level_number = lv_n;
 
     return;
 }
@@ -793,7 +753,8 @@ int main(int argc, char **argv){
     if(0 <= level_number && level_number <= 99){
         //all level beated, YOU WIN!, game over
     }
-
+   
+start_level:
     level_t *level = load_level_from_file(++level_number, &p1_spawn_tile_x, &p1_spawn_tile_y);
     if(!level){
         SDL_Log("error load level %d", level_number);
@@ -802,26 +763,11 @@ int main(int argc, char **argv){
     //load enemies    
     enemy_t *level_enemies = spawn_enemies_on_level(level, level_number);
 
-    //int p1_spawn_pos_x = p1_spawn_tile_x * wall_width;
-    //int p1_spawn_pos_y = (p1_spawn_tile_y * wall_height) + (wall_height - p1_height) - 1;
-    //spawn_player_in_level(player1, p1_spawn_pos_x, p1_spawn_pos_y);
     spawn_player_in_level(player1, p1_spawn_tile_x, p1_spawn_tile_y);
-
 
     for(int i = 0; i < level->enemies_in_level; i++){
         level_enemies[i].status = 1;
     }
-
-    /*
-    level_t *level;
-    enemy_t *level_enemies;
-
-    level_start(level, &level_number, &p1_spawn_tile_x, &p1_spawn_tile_y, player1, NULL, level_enemies);
-    if(!level){
-        SDL_Log("error load level %d", level_number);
-        goto quit;
-    }
-    */
 
 //GAME LOOP
     for(;;){
@@ -998,6 +944,13 @@ int main(int argc, char **argv){
                     }
                 }
 
+                //check player collision
+
+                if(rect_collision(level_enemies[i].rect, player1->rect)){
+                    on_player_death(player1);
+                    spawn_player_in_level(player1, p1_spawn_tile_x, p1_spawn_tile_y);
+                }
+                    
                 SDL_Texture *enemy_texture;
                 if(level_enemies[i].type_id == 2){
                     //zen-chan textures
@@ -1066,6 +1019,9 @@ int main(int argc, char **argv){
                             */
                             player1->jump_offset = JUMP_START_OFFSET / 2;
                         }else if(collision_result == 1 || collision_result == 2){
+                            if(p1_bubbles[i].status == 3){
+                                level->enemies_alive--;
+                            }
                             reset_bubble(&p1_bubbles[i]);
                         }
                     }
@@ -1106,6 +1062,15 @@ int main(int argc, char **argv){
                     }
                 }
             }
+        }
+
+        //go to next level
+        if(level->enemies_alive <= 0){
+            goto start_level;
+        }
+        //game over
+        if(player1->is_alive == 0){
+            goto quit;
         }
 
         SDL_RenderPresent(renderer);

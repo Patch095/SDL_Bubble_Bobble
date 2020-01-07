@@ -21,6 +21,7 @@ typedef struct level_map{
 
     //9 = UI
     int enemies_in_level;
+    int enemies_alive;
 } level_t;
 
 level_t *load_level(const char* file_name);
