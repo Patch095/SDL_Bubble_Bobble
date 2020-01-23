@@ -62,7 +62,12 @@ level_t *load_level(const char* file_name){
                 new_level->enemies_in_level++;
                 index_x++;
                 break;
-            case '9':   //UI score
+            case '5':   //might-a_spawn
+                new_level->level_layout[index_y][index_x] = 5;
+                new_level->enemies_in_level++;
+                index_x++;
+                break;
+            case '9':   //falling
                 new_level->level_layout[index_y][index_x] = 9;
                 index_x++;
                 break;
@@ -78,6 +83,11 @@ level_t *load_level(const char* file_name){
 int get_tile_value(level_t *level, int y, int x){
     int tile_y = y / TILE_H;
     int tile_x = x / TILE_W;
+
+    if(tile_y >= MAP_TILES_Y + 1){
+        return -1;
+    }
+
     return level->level_layout[tile_y][tile_x];
 }
 

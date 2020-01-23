@@ -44,14 +44,16 @@ int bubble_update(bubble_t *bubble){
     }
 
     //shoot bubble
-    if(bubble->status == 1){
+    if(bubble->shoot_distance_offset > 0){
         bubble->rect.x += (1 * bubble->direction);
         bubble->shoot_distance_offset--;
-        if(bubble->shoot_distance_offset <= 0){
+        if(bubble->shoot_distance_offset <= 0 && bubble->status == 1){
             bubble->status = 2;
         }
-    }//float bubble
-    else if(bubble->status != 1){
+    }
+      
+    //float bubble
+    if(bubble->status != 1 && bubble->shoot_distance_offset <= 8){
         if(bubble->duration % 2 == 0){
             bubble->rect.y--;
         } 

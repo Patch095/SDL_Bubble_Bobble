@@ -13,13 +13,14 @@ typedef struct level_map{
     //2 = p1 spawn
     //3 = p2 spawn
 
-    //4 = enemy spawn
-    //5 = ghost spawn
+    //4 = zen-chan spawn
+    //5 = might-a spawn
+    
     //6 = phantom spawn
     //7 = jumpy spawn
     //8 = star spawn
 
-    //9 = UI
+    //9 = warp zone
     int enemies_in_level;
     int enemies_alive;
 } level_t;

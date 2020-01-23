@@ -20,7 +20,8 @@ player_t *player_init(int player_id){
     new_player->is_shooting = 0;
     new_player->jumping_state = 0;
     new_player->jump_offset = 0;
-    
+    new_player->respawn_invicibility = 0;
+
     new_player->rect.x = 0;
     new_player->rect.y = 0;
     new_player->rect.w = 0;
@@ -57,6 +58,7 @@ void add_a_life(player_t *player){
 void on_player_death(player_t *player){
     player->life--; 
     player->is_alive = player->life > 0;
+    player->respawn_invicibility = INVINCIBILITY_TIME;
 }
 
 /*

@@ -6,6 +6,8 @@
 #define PLAYER_SPAWN_LIFE 3
 #define PLAYER_MAX_LIFE 5
 
+#define INVINCIBILITY_TIME 30
+
 typedef struct player{
     SDL_Rect rect;
     int life;
@@ -19,6 +21,8 @@ typedef struct player{
     int is_alive;       //0 = no    1 = yes
 
     int animation_frame;
+
+    int respawn_invicibility;
 } player_t;
 
 player_t *player_init(int player_id);
@@ -33,3 +37,11 @@ void on_player_death(player_t *player);
 //void player_wall_collision(player_t *player, SDL_Rect player_rect, SDL_Rect collider);
 
 //int can_collide(int new_x, SDL_Rect player_rect, SDL_Rect collider);
+
+/*
+
+The log10, abs, and floor functions are provided by math.h. For example:
+
+int nDigits = floor(log10(abs(the_integer))) + 1;
+
+*/

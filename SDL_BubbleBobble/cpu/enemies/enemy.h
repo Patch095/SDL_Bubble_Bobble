@@ -1,8 +1,22 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#define ABSORBE_DURATION_TIMER 120
+#define ABSORBE_DURATION_TIMER 240
 #define SPRITE_WH 16
+
+#define MIGHT_BULLET_W 15
+#define MIGHT_BULLET_H 16
+
+typedef struct bullet{
+    SDL_Rect rect;
+    int direction_x;
+    int direction_y;
+    int speed;
+    int owner_id;
+    int status;
+    int number_of_animation_frame;
+    int animation_frame;
+} bullet_t;
 
 typedef struct enemy{
     SDL_Rect rect;
@@ -20,11 +34,13 @@ typedef struct enemy{
     int special_action_chance;
 
     int absorbed_timer;
+
+    bullet_t *bullet;
 } enemy_t;
 
 enemy_t *enemy_init(int enemy_id);
 
-void enemy_update(enemy_t *enemy);
+int enemy_update(enemy_t *enemy, int rand_chance);
 
 void change_direction(enemy_t *enemy);
 void jump(enemy_t *enemy);
